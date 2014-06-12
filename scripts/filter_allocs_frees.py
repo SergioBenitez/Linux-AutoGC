@@ -23,10 +23,6 @@ from __future__ import print_function
 import sys, json, os
 import itertools
 
-# Some global state variables
-label_size = {} # maps a label type to last known allocation size
-addr_mem = {} # maps a host address to its allocation size
-
 # global constants
 BAD_FREE_TYPE = -1
 FREE_TYPE = 0
@@ -95,7 +91,7 @@ def main(data, discard_invalid):
   filtered = [x for l in labels for x in filter_label(l)]
 
   if discard_invalid == "true": # discard invalid entries if requested
-    filtered = itertools.ifilter(lambda l: l["type"] != BAD_FREE_TYPE, data)
+    filtered = itertools.ifilter(lambda l: l["type"] != BAD_FREE_TYPE, filtered)
 
   sorted_filtered = sorted(filtered, key = lambda l: float(l['timestamp']))
   print(json.dumps(sorted_filtered))
