@@ -4,60 +4,62 @@ from __future__ import print_function
 import sys, json, os
 import itertools
 
-# The goal of this script is to combine the allocation and free calls of an
-# object (mtrace entries with type 'label') into one mtrace entry with both
-# timestamps present. For example, consider the following two mtrace entries,
-# one for the ellocation of the object, and the latter for the free:
-#
-# { 
-#   "timestamp": 1401904885.633304,
-#   "cpu": 0,
-#   "access_count": 0,
-#   "type": "label",
-#   "label_type": 1,
-#   "label": "kmalloc-256",
-#   "pc": "0xffffffff81127d43",
-#   "host_addr": "0x7fbc293c6e00",
-#   "guest_addr": "0xffff880007bcce00",
-#   "bytes": 256
-# }
-#
-# {
-#   "timestamp": 1401904885.891706,
-#   "cpu": 0,
-#   "access_count": 0,
-#   "type": "label",
-#   "label_type": 1,
-#   "label": "",
-#   "pc": "0xffffffff811279be",
-#   "host_addr": "0x7fbc293c6e00",
-#   "guest_addr": "0xffff880007bcce00",
-#   "bytes": 0
-# }
-#
-# These will be combined into the single entry:
-# { 
-#   "alloc_timestamp": 1401904885.633304,
-#   "free_timestamp": 1401904885.891706,
-#   "cpu": 0,
-#   "access_count": 0,
-#   "type": "label",
-#   "label_type": 1,
-#   "label": "kmalloc-256",
-#   "pc": "0xffffffff81127d43",
-#   "host_addr": "0x7fbc293c6e00",
-#   "guest_addr": "0xffff880007bcce00",
-#   "bytes": 256
-# }
-#
-# The original allocation and free entries will not appear in the output. Only
-# entries with type 'label' will be output. If an alloc does not have a
-# corresponding free entry, it will be discarded if discardAllocFlag=true,
-# otherwise it will be appended to the end of the trace. If a free entry does
-# not have a corresponding alloc, it will be discarded if discardFreeFlag=true,
-# otherwise it will be appended to the end of the stream. If either of these
-# are appended to the end of the trace, they will be appended with the key
-# 'extra' set to true.
+"""
+The goal of this script is to combine the allocation and free calls of an
+object (mtrace entries with type 'label') into one mtrace entry with both
+timestamps present. For example, consider the following two mtrace entries,
+one for the ellocation of the object, and the latter for the free:
+
+{
+  "timestamp": 1401904885.633304,
+  "cpu": 0,
+  "access_count": 0,
+  "type": "label",
+  "label_type": 1,
+  "label": "kmalloc-256",
+  "pc": "0xffffffff81127d43",
+  "host_addr": "0x7fbc293c6e00",
+  "guest_addr": "0xffff880007bcce00",
+  "bytes": 256
+}
+
+{
+  "timestamp": 1401904885.891706,
+  "cpu": 0,
+  "access_count": 0,
+  "type": "label",
+  "label_type": 1,
+  "label": "",
+  "pc": "0xffffffff811279be",
+  "host_addr": "0x7fbc293c6e00",
+  "guest_addr": "0xffff880007bcce00",
+  "bytes": 0
+}
+
+These will be combined into the single entry:
+{
+  "alloc_timestamp": 1401904885.633304,
+  "free_timestamp": 1401904885.891706,
+  "cpu": 0,
+  "access_count": 0,
+  "type": "label",
+  "label_type": 1,
+  "label": "kmalloc-256",
+  "pc": "0xffffffff81127d43",
+  "host_addr": "0x7fbc293c6e00",
+  "guest_addr": "0xffff880007bcce00",
+  "bytes": 256
+}
+
+The original allocation and free entries will not appear in the output. Only
+entries with type 'label' will be output. If an alloc does not have a
+corresponding free entry, it will be discarded if discardAllocFlag=true,
+otherwise it will be appended to the end of the trace. If a free entry does
+not have a corresponding alloc, it will be discarded if discardFreeFlag=true,
+otherwise it will be appended to the end of the stream. If either of these
+are appended to the end of the trace, they will be appended with the key
+'extra' set to true.
+"""
 
 def printerr(*args):
   print(*args, file=sys.stderr)
@@ -65,8 +67,7 @@ def printerr(*args):
 def main(data, discardAllocsFlag, discardFreesFlag):
   labels = itertools.ifilter(lambda entry: entry["type"] == "label", data)
   results = handle_labels(labels, discardAllocsFlag, discardFreesFlag)
-  jsonString = json.dumps(results)
-  print(jsonString)
+  print(json.dumps(results))
 
 def handle_labels(labels, discardExtraAllocs, discardExtraFrees):
   output = [] # Merged alloc/frees

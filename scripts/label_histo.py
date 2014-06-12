@@ -11,19 +11,19 @@ import itertools
 import numpy
 import matplotlib.pyplot as plt
 
-# The goal of this script is to take merged mtrace label entries with
-# timestamp_alloc and timestamp_free properties, calculate the lifetime of an
-# allocation (free - alloc), group the lifetimes by label name, and generate a
-# histrogram with a CDF overlayed on top for each of the label named.
-#
-# TODO: Determine how to output. An interative HTML/JS thing would be nice.
+"""
+The goal of this script is to take merged mtrace label entries with
+timestamp_alloc and timestamp_free properties, calculate the lifetime of an
+allocation (free - alloc), group the lifetimes by label name, and generate a
+histrogram with a CDF overlayed on top for each of the label named.
+"""
 
 def printerr(*args):
   print(*args, file=sys.stderr)
 
 # Returns a dict where the key is a label name and the value is an array of
 # lifetime values. There is one entry for each object type.
-def group_by_label_and_lifetime(data):
+def group_lifetimes_by_label(data):
   output = {}
   for item in data:
     label = item['label']
@@ -42,7 +42,7 @@ def freedman_diaconis_rule(values):
   return 2 * IQR(values) * (len(values)**(-1/3))
 
 # Removes extreme outliers to get reasonable graphs
-def get_values(groups):
+def remove_outliers(groups):
   def get_values_for_key(k):
     p = .95 # bottom percentile to keep
     sorted_values = numpy.sort(numpy.array(groups[k]))
@@ -130,8 +130,8 @@ def generate_histogram(name, values, filename):
   plt.savefig(filename)
 
 def main(data):
-  groups = group_by_label_and_lifetime(data)
-  mapped_values = {key: get_values(groups)(key) for key in groups}
+  groups = group_lifetimes_by_label(data)
+  mapped_values = {key: remove_outliers(groups)(key) for key in groups}
   mapped_values = filter_low(mapped_values, 15) # removes objs with <= 15 vals
 
   # A boxplot comparing all lifetimes
