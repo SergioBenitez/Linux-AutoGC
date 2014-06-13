@@ -108,8 +108,8 @@ def main(data):
   filter_low(grouped, 15)
 
   # plot each individually
-  # for name in grouped:
-  #   generate_graph(name, grouped[name])
+  for name in grouped:
+    generate_graph(name, grouped[name])
 
   # plot them all together
   generate_union_graph(grouped)
