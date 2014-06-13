@@ -1,8 +1,9 @@
 #!/usr/bin/python
 """
-This script filters allocations and deallocations from the input mtrace json
-data. In particular, it keeps only label type entries and keeps/outputs only
-the following keys from the entry:
+This script filters allocations and deallocations from an input merged mtrace
+json data, that is, mtrace.json run through combine_alloc_free.py. In
+particular, it keeps only label type entries and keeps/outputs only the
+following keys from the entry:
   1) timestamp
   2) type: 1 for allocation, 0 for free, -1 for invalid free
   3) bytes: number of bytes being allocated or freed

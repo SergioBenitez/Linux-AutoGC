@@ -26,6 +26,9 @@ def printerr(*args):
 def group_lifetimes_by_label(data):
   output = {}
   for item in data:
+    # skip extra allocs/frees
+    if 'extra' in item: continue
+
     label = item['label']
     if label not in output:
       output[label] = []
