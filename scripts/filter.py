@@ -21,7 +21,7 @@ scan the stack.
 """
 
 from __future__ import print_function
-import sys, json, os
+import sys, json, os, argparse
 import itertools
 
 # global constants
@@ -91,33 +91,27 @@ def main(data, discard_invalid):
   labels = itertools.ifilter(lambda entry: entry["type"] == "label", data)
   filtered = [x for l in labels for x in filter_label(l)]
 
-  if discard_invalid == "true": # discard invalid entries if requested
+  if discard_invalid: # discard invalid entries if requested
     filtered = itertools.ifilter(lambda l: l["type"] != BAD_FREE_TYPE, filtered)
 
   sorted_filtered = sorted(filtered, key = lambda l: float(l['timestamp']))
   print(json.dumps(sorted_filtered))
 
 if __name__ == "__main__":
-  def die(message):
-    printerr("Error:", message)
-    printerr("usage:", sys.argv[0], "input-file discard-invalid")
-    printerr("example:", sys.argv[0], "merged.json true")
-    exit(1)
+  def boolean(string):
+    """ Converts a user's input boolean to a bool if it can."""
+    lowercase = string.lower()
+    if lowercase == "true": return True
+    elif lowercase == "false": return False
+    raise argparse.ArgumentTypeError("flag must be 'true' or 'false'")
 
-  def check_bool_flag(flag):
-    if flag != "true" and flag != "false":
-      die("Flags must be either 'true' or 'false'")
+  parser = argparse.ArgumentParser()
+  parser.add_argument("discard_invalid", type=boolean, default=False, nargs="?",
+      help="whether or not to discard rogue/extra frees. (false)")
+  parser.add_argument("filename", nargs="?", metavar="merged.json",
+      type=argparse.FileType('r'), default=sys.stdin,
+      help="filename for merged json. leave empty to use standard input")
 
-  if len(sys.argv) != 3:
-    die("Incorrect number of arguments.")
-
-  discard_invalid = sys.argv[2]
-  check_bool_flag(discard_invalid)
-
-  try:
-    filename = sys.argv[1]
-    data = json.load(open(filename, "r"))
-  except:
-    die("Invalid file path or JSON.")
-
-  sys.exit(main(data, discard_invalid))
+  args = parser.parse_args()
+  data = json.load(args.filename)
+  sys.exit(main(data, args.discard_invalid))

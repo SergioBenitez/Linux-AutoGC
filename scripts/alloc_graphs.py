@@ -10,8 +10,7 @@ from __future__ import print_function
 import matplotlib
 matplotlib.use('Agg')
 
-import sys, json, os
-import itertools
+import sys, json, os, argparse, itertools
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -73,6 +72,7 @@ def filter_low(grouped, num):
     del grouped[k]
 
 def generate_union_graph(grouped):
+  # TODO: Seperate this into four graphs by max number of allocs in quartiles
   print("Generating union graph")
 
   fig, ax1 = plt.subplots()
@@ -115,19 +115,11 @@ def main(data):
   generate_union_graph(grouped)
 
 if __name__ == "__main__":
-  def die(*message):
-    printerr("Error:", *message)
-    printerr("usage:", sys.argv[0], "input-file")
-    printerr("example:", sys.argv[0], "filtered.json")
-    exit(1)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("filename", nargs="?", metavar="filtered.json",
+      type=argparse.FileType('r'), default=sys.stdin,
+      help="filename for filtered json. leave empty to use standard input")
 
-  if len(sys.argv) != 2:
-    die("Incorrect number of arguments. Expected 2, got ", len(sys.argv))
-
-  try:
-    filename = sys.argv[1]
-    data = json.load(open(filename, "r"))
-  except:
-    die("Invalid file path or JSON.")
-
+  args = parser.parse_args()
+  data = json.load(args.filename)
   sys.exit(main(data))

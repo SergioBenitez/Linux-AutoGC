@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from __future__ import print_function
-import sys, json, os
+import sys, json, os, argparse
 import itertools
 
 """
@@ -79,11 +79,11 @@ def handle_labels(labels, discardExtraAllocs, discardExtraFrees):
     else:
       handle_free(allocs, output, label, extraFrees)
 
-  if discardExtraAllocs == "false":
+  if not discardExtraAllocs:
     for v in allocs.values(): v['extra'] = True
     output += allocs.values()
 
-  if discardExtraFrees == "false":
+  if not discardExtraFrees:
     for v in extraFrees: v['extra'] = True
     output += extraFrees
 
@@ -131,27 +131,22 @@ def handle_free(allocs, output, label, extraFrees):
   output.append(newLabel)
 
 if __name__ == "__main__":
-  def die(message):
-    printerr("Error:", message)
-    printerr("usage:", sys.argv[0], "input-file discard-allocs discard-frees")
-    printerr("example:", sys.argv[0], "mtrace.json true true")
-    exit(1)
+  def boolean(string):
+    """ Converts a user's input boolean to a bool if it can."""
+    lowercase = string.lower()
+    if lowercase == "true": return True
+    elif lowercase == "false": return False
+    raise argparse.ArgumentTypeError("flag must be 'true' or 'false'")
 
-  def checkBoolFlag(flag):
-    if flag != "true" and flag != "false":
-      die("Flags must be either 'true' or 'false'")
+  parser = argparse.ArgumentParser()
+  parser.add_argument("discard_allocs", type=boolean, default=False, nargs="?",
+      help="whether or not to discard rogue/extra allocs (false)")
+  parser.add_argument("discard_frees", type=boolean, default=False, nargs="?",
+      help="whether or not to discard rogue/extra frees (false)")
+  parser.add_argument("filename", nargs="?", metavar="mtrace.json",
+      type=argparse.FileType('r'), default=sys.stdin,
+      help="filename for mtrace json. leave empty to use standard input")
 
-  if len(sys.argv) != 4:
-    die("Incorrect number of arguments.")
-
-  discardAllocsFlag, discardFreesFlag = sys.argv[2:4]
-  checkBoolFlag(discardAllocsFlag)
-  checkBoolFlag(discardFreesFlag)
-
-  try:
-    filename = sys.argv[1]
-    data = json.load(open(filename, "r"))
-  except:
-    die("Invalid file path or JSON.")
-
-  sys.exit(main(data, discardAllocsFlag, discardFreesFlag))
+  args = parser.parse_args()
+  data = json.load(args.filename)
+  sys.exit(main(data, args.discard_allocs, args.discard_frees))

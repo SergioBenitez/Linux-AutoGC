@@ -6,7 +6,7 @@ from __future__ import print_function
 import matplotlib
 matplotlib.use('Agg')
 
-import sys, json, os
+import sys, json, os, argparse
 import itertools
 import numpy
 import matplotlib.pyplot as plt
@@ -147,19 +147,11 @@ def main(data):
   # print(json.dumps(groups))
 
 if __name__ == "__main__":
-  def die(message):
-    printerr("Error:", message)
-    printerr("usage:", sys.argv[0], "input-file")
-    printerr("example:", sys.argv[0], "merged.json")
-    exit(1)
+  parser = argparse.ArgumentParser()
+  parser.add_argument("filename", nargs="?", metavar="merged.json",
+      type=argparse.FileType('r'), default=sys.stdin,
+      help="filename for merged json. leave empty to use standard input")
 
-  if len(sys.argv) != 2:
-    die("Incorrect number of arguments.")
-
-  try:
-    filename = sys.argv[1]
-    data = json.load(open(filename, "r"))
-  except:
-    die("Invalid file path or JSON.")
-
+  args = parser.parse_args()
+  data = json.load(args.filename)
   sys.exit(main(data))
