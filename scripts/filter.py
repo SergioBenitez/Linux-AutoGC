@@ -32,21 +32,6 @@ ALLOC_TYPE = 1
 def printerr(*args):
   print(*args, file=sys.stderr)
 
-# Tries to determine how many bytes this allocation or deallocation uses
-def determine_free_bytes(label):
-  # If there's a corresponding allocation by address, use that size.
-  # Otherwise, use the last known size for the label name
-  host_addr, name = label['host_addr'], label['label']
-  if host_addr in addr_mem:
-    num_bytes = addr_mem[host_addr]
-    del addr_mem[host_addr]
-    return num_bytes
-  elif name in label_size:
-    return label_size[name]
-
-  printerr("Free passed to determine_bytes with no previous allocation.")
-  sys.exit(1)
-
 def extract_alloc(base, label):
   alloc = base.copy()
   alloc['type'] = ALLOC_TYPE
