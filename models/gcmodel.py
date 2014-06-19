@@ -23,7 +23,7 @@ TODO: Have some way for models to specify allocator parameters. Goals:
   3) Should be Pythonic.
 """
 
-import os, sys, argparse, json, copy_reg, types
+import os, sys, argparse, json, copy_reg, types, inspect
 import multiprocessing as mp
 
 # global constants
@@ -51,28 +51,78 @@ class TraceRunner(object):
     model_inst = model.__new__(model)
     model_inst.__init__()
     for item in self.data:
+      item_type, addr = item['type'], item['addr']
       ts, name, size = item['timestamp'], item['name'], item['bytes']
-      if item['type'] == ALLOC_TYPE:
-        model_inst.alloc(ts, name, size)
-      elif item['type'] == FREE_TYPE:
-        model_inst.free(ts, name, size)
+      if item_type == ALLOC_TYPE:
+        model_inst._alloc(ts, addr, name, size)
+      elif item_type == FREE_TYPE:
+        model_inst._free(ts, addr, name, size)
     return model_inst.get_time()
 
   def run_all(self):
     proc_count = min(len(self.models), mp.cpu_count())
     pool = mp.Pool(processes=proc_count)
     results = pool.map(self.run_one, self.models)
+    # results = [self.run_one(model) for model in self.models]
     return results
 
 class GCModel(object):
   def __init__(self):
-    self.time = 0
+    self._time = 0
+    self._metadata = {} # map addresses to returned allocation metadata
+    self._validate_callbacks("talloc", "alloc", 3, 2)
+    self._validate_callbacks("tfree", "free", 3, 2)
+
+  def _get_method(self, name):
+    try:
+      return getattr(self, name)
+    except AttributeError:
+      return None
+
+  def _validate_callbacks(self, a, b, anum, bnum):
+    """
+    Makes sure that only one of methods a and b are defined. Makes sure that
+    the method defined has the correct number of arguments (anum, bnum).
+    """
+    f_a, f_b = self._get_method(a), self._get_method(b)
+    has_a, has_b = f_a != None, f_b != None
+    if has_a and has_b:
+      raise AssertionError("Cannot define both " + a + ", and " + b + ".")
+    elif has_a:
+      fargs, _, _, _ = inspect.getargspec(f_a)
+      if len(fargs) != anum:
+        raise AssertionError(a + " must take exactly " + str(anum) + " args.")
+    elif has_b:
+      fargs, _, _, _ = inspect.getargspec(f_b)
+      if len(fargs) != bnum:
+        raise AssertionError(b + " must take exactly " + str(bnum) + " args.")
+    else:
+      raise AssertionError("Must define one of " + a + " or " + b + ".")
 
   def add_time(self, time):
-    self.time += time
+    self._time += time
 
   def get_time(self):
-    return self.time
+    return self._time
+
+  def _alloc(self, ts, addr, name, size):
+    # relies on _validate_callbacks being run before
+    uses_simple = self._get_method("alloc") != None
+    if uses_simple:
+      metadata = self.alloc(size)
+    else:
+      metadata = self.talloc(name, size)
+    self._metadata[addr] = metadata
+
+  def _free(self, ts, addr, name, size):
+    # relies on _validate_callbacks being run before
+    uses_simple = self._get_method("free") != None
+    metadata = self._metadata[addr]
+    if uses_simple:
+      self.free(metadata)
+    else:
+      self.tfree(name, metadata)
+    del self._metadata[addr]
 
 """
 This code below allows instance methods to be pickled so that we can use

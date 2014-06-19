@@ -8,6 +8,7 @@ following keys from the entry:
   2) type: 1 for allocation, 0 for free, -1 for invalid free
   3) bytes: number of bytes being allocated or freed
   4) name: the name of the object being allocced or freed
+  5) addr: the address returned by allocator that allocated this object
 
 The filtering discards frees of a type that have no previous allocation if the
 discard free flag is true, otherwise it sets their type to -1. That is, if there
@@ -46,8 +47,8 @@ def extract_free_from_merged(base, label):
 
 def filter_label(label):
   # Figure out if we're dealing with a matched alloc/free pair
-  label_bytes, label_name = label['bytes'], label['label']
-  base = {"name": label_name, "bytes": label_bytes}
+  size, name, addr = label['bytes'], label['label'], label['host_addr']
+  base = {"name": name, "bytes": size, "addr": addr}
   if 'timestamp_free' in label and 'timestamp_alloc' in label:
     yield extract_alloc(base, label)
     yield extract_free_from_merged(base, label)
@@ -60,11 +61,10 @@ def filter_label(label):
 
   # Do we have a rouge free?
   if 'timestamp_free' in label:
-    filtered = {}
+    filtered = base.copy()
     filtered['name'] = "inv"
-    filtered['timestamp'] = label['timestamp_free']
     filtered['type'] = BAD_FREE_TYPE
-    filtered['bytes'] = 0
+    filtered['timestamp'] = label['timestamp_free']
     yield filtered
     return
 
