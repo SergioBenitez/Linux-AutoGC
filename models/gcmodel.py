@@ -57,6 +57,7 @@ class TraceRunner(object):
         model_inst._alloc(ts, addr, name, size)
       elif item_type == FREE_TYPE:
         model_inst._free(ts, addr, name, size)
+    model_inst.done()
     return model_inst.get_time()
 
   def run_all(self):
@@ -87,7 +88,7 @@ class GCModel(object):
     f_a, f_b = self._get_method(a), self._get_method(b)
     has_a, has_b = f_a != None, f_b != None
     if has_a and has_b:
-      raise AssertionError("Cannot define both " + a + ", and " + b + ".")
+      raise AssertionError("Cannot define both " + a + " and " + b + ".")
     elif has_a:
       fargs, _, _, _ = inspect.getargspec(f_a)
       if len(fargs) != anum:
@@ -123,6 +124,9 @@ class GCModel(object):
     else:
       self.tfree(name, metadata)
     del self._metadata[addr]
+
+  def _done(self):
+    return self.done()
 
 """
 This code below allows instance methods to be pickled so that we can use
