@@ -57,7 +57,7 @@ class TraceRunner(object):
         model_inst._alloc(ts, addr, name, size)
       elif item_type == FREE_TYPE:
         model_inst._free(ts, addr, name, size)
-    model_inst.done()
+    model_inst._done()
     return model_inst.get_time()
 
   def run_all(self):
@@ -126,7 +126,8 @@ class GCModel(object):
     del self._metadata[addr]
 
   def _done(self):
-    return self.done()
+    if self._get_method("done") != None:
+      return self.done()
 
 """
 This code below allows instance methods to be pickled so that we can use
